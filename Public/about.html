@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>About Us · Dead Man's Agent</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background: #000000;
+      font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Helvetica Neue', sans-serif;
+      color: #FFFFFF;
+      line-height: 1.5;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 3rem 2rem;
+    }
+
+    /* Header */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+      padding-bottom: 2rem;
+      margin-bottom: 3rem;
+      border-bottom: 1px solid #222;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .logo-icon {
+      font-size: 1.8rem;
+    }
+
+    .logo-text {
+      font-size: 0.9rem;
+      font-weight: 600;
+      letter-spacing: 2px;
+      background: #FFFFFF;
+      color: #000000;
+      padding: 0.2rem 0.8rem;
+      border-radius: 20px;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 2rem;
+    }
+
+    .nav-link {
+      font-size: 0.85rem;
+      color: #CCC;
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .nav-link:hover {
+      color: #FFFFFF;
+    }
+
+    /* Hero Section */
+    .hero {
+      text-align: center;
+      margin-bottom: 4rem;
+    }
+
+    h1 {
+      font-size: 3.5rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      margin-bottom: 1rem;
+    }
+
+    .highlight {
+      color: #FFFFFF;
+      border-bottom: 3px solid #FFFFFF;
+    }
+
+    .sub {
+      font-size: 1.1rem;
+      color: #888;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    /* Mission Section */
+    .mission {
+      background: #0A0A0A;
+      border-radius: 24px;
+      padding: 3rem;
+      margin-bottom: 3rem;
+      text-align: center;
+    }
+
+    .mission h2 {
+      font-size: 2rem;
+      margin-bottom: 1rem;
+    }
+
+    .mission p {
+      font-size: 1rem;
+      color: #AAA;
+      max-width: 700px;
+      margin: 0 auto;
+      line-height: 1.6;
+    }
+
+    /* Stats Grid */
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 2rem;
+      margin-bottom: 3rem;
+    }
+
+    .stat-card {
+      background: #0A0A0A;
+      border: 1px solid #222;
+      border-radius: 20px;
+      padding: 2rem;
+      text-align: center;
+    }
+
+    .stat-number {
+      font-size: 2.5rem;
+      font-weight: 700;
+      color: #FFFFFF;
+    }
+
+    .stat-label {
+      font-size: 0.85rem;
+      color: #888;
+      margin-top: 0.5rem;
+    }
+
+    /* Problem/Solution Grid */
+    .problem-solution {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+      margin-bottom: 3rem;
+    }
+
+    .card {
+      background: #0A0A0A;
+      border: 1px solid #222;
+      border-radius: 24px;
+      padding: 2rem;
+    }
+
+    .card h3 {
+      font-size: 1.3rem;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .card p {
+      color: #AAA;
+      line-height: 1.6;
+      margin-bottom: 1rem;
+    }
+
+    /* Team Section */
+    .team {
+      margin-bottom: 3rem;
+    }
+
+    .team h2 {
+      font-size: 1.8rem;
+      margin-bottom: 2rem;
+      text-align: center;
+    }
+
+    .team-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 2rem;
+    }
+
+    .team-member {
+      text-align: center;
+    }
+
+    .member-avatar {
+      width: 80px;
+      height: 80px;
+      background: #1A1A1A;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 1rem;
+      font-size: 2rem;
+    }
+
+    .member-name {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 0.25rem;
+    }
+
+    .member-role {
+      font-size: 0.75rem;
+      color: #666;
+    }
+
+    /* Footer */
+    .footer {
+      text-align: center;
+      padding-top: 2rem;
+      border-top: 1px solid #222;
+      font-size: 0.7rem;
+      color: #555;
+      margin-top: 2rem;
+    }
+
+    .footer a {
+      color: #888;
+      text-decoration: none;
+      margin: 0 0.5rem;
+    }
+
+    .footer a:hover {
+      color: #FFF;
+    }
+
+    /* Button */
+    button {
+      background: #FFFFFF;
+      color: #000000;
+      border: none;
+      border-radius: 40px;
+      padding: 0.8rem 2rem;
+      font-size: 0.9rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: opacity 0.2s;
+      margin-top: 1rem;
+    }
+
+    button:hover {
+      opacity: 0.8;
+    }
+
+    /* Responsive */
+    @media (max-width: 800px) {
+      .stats { grid-template-columns: 1fr; }
+      .problem-solution { grid-template-columns: 1fr; }
+      .team-grid { grid-template-columns: 1fr; }
+      h1 { font-size: 2.5rem; }
+      .container { padding: 1.5rem; }
+      .nav-links { gap: 1rem; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <!-- Header -->
+  <header class="header">
+    <div class="logo">
+      <span class="logo-icon">⌛</span>
+      <span class="logo-text">DMA</span>
+    </div>
+    <div class="nav-links">
+      <a href="index.html" class="nav-link">Home</a>
+      <a href="about.html" class="nav-link" style="color:#FFF;">About</a>
+      <a href="how-it-works.html" class="nav-link">How it works</a>
+      <a href="attestation-ledger.html" class="nav-link">Ledger</a>
+    </div>
+  </header>
+
+  <!-- Hero -->
+  <div class="hero">
+    <h1>About <span class="highlight">Dead Man's Agent</span></h1>
+    <div class="sub">Protecting digital legacies through autonomous, trustless execution.</div>
+  </div>
+
+  <!-- Mission -->
+  <div class="mission">
+    <h2>Our Mission</h2>
+    <p>To ensure that no digital asset is ever lost. We're building the infrastructure for autonomous succession — making sure your crypto, NFTs, and digital life pass to your loved ones exactly as you intend.</p>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats">
+    <div class="stat-card">
+      <div class="stat-number">$100B+</div>
+      <div class="stat-label">Lost crypto annually due to lack of succession plans</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number">4M+</div>
+      <div class="stat-label">Wallets with no beneficiary designated</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number">0</div>
+      <div class="stat-label">Trust required — fully autonomous</div>
+    </div>
+  </div>
+
+  <!-- Problem & Solution -->
+  <div class="problem-solution">
+    <div class="card">
+      <h3>⚠️ The Problem</h3>
+      <p>When someone passes away, their crypto wallets become inaccessible. No one has the keys. No one can claim the assets.</p>
+      <p>Billions of dollars in Bitcoin, Ethereum, and other crypto sit frozen forever. Families are left with nothing. This is a silent crisis in web3.</p>
+      <p>Existing solutions require trusted third parties, legal fees, or manual intervention — all of which fail.</p>
+    </div>
+    <div class="card">
+      <h3>✓ The Solution</h3>
+      <p>Dead Man's Agent removes trust from the equation. An autonomous, on-chain agent watches your heartbeat.</p>
+      <p>When you stop responding, it executes your final wishes — sending assets, notifying loved ones, and closing accounts — all verifiable on-chain.</p>
+      <p>No lawyers. No delays. No lost crypto.</p>
+    </div>
+  </div>
+
+  <!-- Team -->
+  <div class="team">
+    <h2>Built for the Future</h2>
+    <div class="team-grid">
+      <div class="team-member">
+        <div class="member-avatar">🔗</div>
+        <div class="member-name">On-Chain First</div>
+        <div class="member-role">Fully decentralized infrastructure</div>
+      </div>
+      <div class="team-member">
+        <div class="member-avatar">🛡️</div>
+        <div class="member-name">Trustless</div>
+        <div class="member-role">No middlemen, no custodians</div>
+      </div>
+      <div class="team-member">
+        <div class="member-avatar">📜</div>
+        <div class="member-name">Verifiable</div>
+        <div class="member-role">Every action attested on-chain</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CTA -->
+  <div style="text-align: center; padding: 2rem;">
+    <button onclick="window.location.href='signup.html'">Start securing your legacy →</button>
+  </div>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <p>Dead Man's Agent · Autonomous succession on-chain</p>
+    <p style="margin-top: 0.5rem;">
+      <a href="about.html">About</a> · 
+      <a href="how-it-works.html">How it works</a> · 
+      <a href="#">Privacy</a> · 
+      <a href="#">Terms</a>
+    </p>
+  </footer>
+</div>
+
+</body>
+</html>
