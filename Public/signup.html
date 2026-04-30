@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign up · Dead Man's Agent</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #FFFFFF;
+      font-family: -apple-system, BlinkMacSystemFont, 'Inter', monospace;
+      color: #000;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 1rem;
+    }
+    .card {
+      background: #FFF;
+      max-width: 520px;
+      width: 100%;
+      padding: 2rem;
+      border: 1px solid #E5E5E5;
+      border-radius: 28px;
+    }
+    .logo { margin-bottom: 1.5rem; }
+    .logo span { font-size: 1.5rem; }
+    h2 { font-size: 1.5rem; font-weight: 500; margin-bottom: 0.25rem; }
+    .sub { color: #666; font-size: 0.8rem; margin-bottom: 1.5rem; }
+    label {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      font-weight: 600;
+      display: block;
+      margin-top: 1rem;
+      margin-bottom: 0.4rem;
+    }
+    input, select {
+      width: 100%;
+      padding: 0.8rem 1rem;
+      background: #FFF;
+      border: 1px solid #E5E5E5;
+      border-radius: 12px;
+      font-family: monospace;
+      font-size: 0.9rem;
+    }
+    input:focus, select:focus { outline: none; border-color: #000; }
+    button {
+      width: 100%;
+      background: #000;
+      color: #FFF;
+      border: none;
+      border-radius: 40px;
+      padding: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 1.5rem;
+    }
+    button.secondary { background: #F5F5F5; color: #000; border: 1px solid #E5E5E5; margin-top: 0.5rem; }
+    .chain-selector { display: grid; grid-template-columns: repeat(2,1fr); gap: 0.5rem; margin-top: 0.5rem; }
+    .chain-option {
+      background: #F5F5F5;
+      border: 1px solid #E5E5E5;
+      border-radius: 12px;
+      padding: 0.6rem;
+      text-align: center;
+      cursor: pointer;
+      font-size: 0.8rem;
+    }
+    .chain-option.selected { background: #000; color: #FFF; border-color: #000; }
+    .warning-box {
+      background: #F5F5F5;
+      border-left: 3px solid #000;
+      padding: 0.8rem;
+      margin: 1rem 0;
+      font-size: 0.7rem;
+    }
+    .hidden { display: none; }
+    .status-badge {
+      background: #F5F5F5;
+      padding: 1rem;
+      border-radius: 16px;
+      text-align: center;
+      margin-top: 1rem;
+    }
+    .toast {
+      position: fixed; bottom: 20px; right: 20px;
+      background: #000; color: #FFF;
+      padding: 0.75rem 1.25rem;
+      border-radius: 40px;
+      font-size: 0.8rem;
+    }
+  </style>
+</head>
+<body>
+
+<div class="card">
+  <div class="logo"><span>⌛</span> <strong>DMA</strong></div>
+
+  <div id="step1">
+    <h2>Create your plan</h2>
+    <div class="sub">Your autonomous successor on-chain</div>
+
+    <label>Your name</label>
+    <input type="text" id="ownerName" placeholder="Alex Rivera">
+
+    <label>Your email</label>
+    <input type="email" id="ownerEmail" placeholder="you@example.com">
+
+    <label>Next of kin name</label>
+    <input type="text" id="kinName" placeholder="Jamie Rivera">
+
+    <label>Next of kin email</label>
+    <input type="email" id="kinEmail" placeholder="kin@example.com">
+    <div class="warning-box">⚠️ They will receive a confirmation email. Agent only activates after they accept.</div>
+
+    <label>Grace period</label>
+    <select id="graceDays">
+      <option value="3">3 days</option>
+      <option value="7" selected>7 days (recommended)</option>
+      <option value="14">14 days</option>
+      <option value="30">30 days</option>
+    </select>
+
+    <label>Blockchain</label>
+    <div class="chain-selector" id="chainSelector">
+      <div class="chain-option" data-chain="0g">0G Chain</div>
+      <div class="chain-option" data-chain="ethereum">Ethereum</div>
+      <div class="chain-option" data-chain="polygon">Polygon</div>
+      <div class="chain-option" data-chain="base">Base</div>
+    </div>
+
+    <label>Wallet address</label>
+    <input type="text" id="wallet" placeholder="0x...">
+
+    <button id="registerBtn">Send verification →</button>
+  </div>
+
+  <div id="step2" class="hidden">
+    <div class="status-badge">⏳ Waiting for next of kin confirmation...</div>
+    <p style="margin-top: 1rem; font-size: 0.8rem;" id="kinDisplay"></p>
+    <button id="resendBtn" class="secondary">Resend email</button>
+    <button id="cancelBtn" class="secondary" style="background:#F5F5F5;">Cancel</button>
+  </div>
+</div>
+
+<script>
+  let selectedChain = '0g';
+
+  document.querySelectorAll('.chain-option').forEach(opt => {
+    opt.onclick = () => {
+      document.querySelectorAll('.chain-option').forEach(o => o.classList.remove('selected'));
+      opt.classList.add('selected');
+      selectedChain = opt.dataset.chain;
+    };
+  });
+
+  function showToast(msg) {
+    const t = document.createElement('div');
+    t.className = 'toast';
+    t.textContent = msg;
+    document.body.appendChild(t);
+    setTimeout(() => t.remove(), 3000);
+  }
+
+  document.getElementById('registerBtn').onclick = () => {
+    const data = {
+      ownerName: document.getElementById('ownerName').value.trim(),
+      ownerEmail: document.getElementById('ownerEmail').value.trim().toLowerCase(),
+      kinName: document.getElementById('kinName').value.trim(),
+      kinEmail: document.getElementById('kinEmail').value.trim().toLowerCase(),
+      graceDays: document.getElementById('graceDays').value,
+      wallet: document.getElementById('wallet').value.trim(),
+      chain: selectedChain,
+      registeredAt: new Date().toISOString(),
+      kinConfirmed: false
+    };
+
+    if (!data.ownerName || !data.ownerEmail || !data.kinName || !data.kinEmail || !data.wallet) {
+      showToast('Please fill all fields');
+      return;
+    }
+
+    localStorage.setItem('dma_pending', JSON.stringify(data));
+    
+    // Simulate email
+    console.log(`📧 Verification sent to ${data.kinEmail}`);
+    showToast(`✓ Verification sent to ${data.kinEmail}`);
+
+    document.getElementById('step1').classList.add('hidden');
+    document.getElementById('step2').classList.remove('hidden');
+    document.getElementById('kinDisplay').innerHTML = `📧 ${data.kinEmail}<br>🔗 ${data.chain}`;
+
+    // Poll for confirmation
+    const interval = setInterval(() => {
+      const pending = localStorage.getItem('dma_pending');
+      if (pending) {
+        const p = JSON.parse(pending);
+        if (p.kinConfirmed === true) {
+          clearInterval(interval);
+          localStorage.setItem('dma_user', JSON.stringify({ ...p, authenticated: true }));
+          localStorage.removeItem('dma_pending');
+          showToast('✓ Kin confirmed! Redirecting...');
+          setTimeout(() => { window.location.href = 'dashboard.html'; }, 1000);
+        }
+      }
+    }, 2000);
+  };
+
+  document.getElementById('resendBtn')?.addEventListener('click', () => {
+    const pending = localStorage.getItem('dma_pending');
+    if (pending) showToast('Verification resent');
+  });
+
+  document.getElementById('cancelBtn')?.addEventListener('click', () => {
+    localStorage.removeItem('dma_pending');
+    window.location.href = 'index.html';
+  });
+</script>
+
+</body>
+</html>

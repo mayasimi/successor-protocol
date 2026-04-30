@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Dead Man's Agent — Autonomous estate executor. Your will, executed when you stop responding.">
+  <title>Dead Man's Agent</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background: #FFFFFF;
+      font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Helvetica Neue', sans-serif;
+      color: #000000;
+      line-height: 1.5;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 3rem 2rem;
+    }
+
+    /* Header */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+      padding-bottom: 2rem;
+      margin-bottom: 4rem;
+      border-bottom: 1px solid #E5E5E5;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .logo-icon {
+      font-size: 1.8rem;
+    }
+
+    .logo-text {
+      font-size: 0.9rem;
+      font-weight: 600;
+      letter-spacing: 2px;
+      background: #000;
+      color: #fff;
+      padding: 0.2rem 0.8rem;
+      border-radius: 20px;
+    }
+
+    .nav-link {
+      font-size: 0.8rem;
+      color: #666;
+      text-decoration: none;
+      margin-left: 1.5rem;
+    }
+
+    .nav-link:hover {
+      color: #000;
+    }
+
+    /* Hero */
+    .hero {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4rem;
+      align-items: center;
+      margin-bottom: 5rem;
+    }
+
+    h1 {
+      font-size: 3.5rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      line-height: 1.2;
+      margin-bottom: 1.5rem;
+    }
+
+    .highlight {
+      border-bottom: 3px solid #000;
+    }
+
+    .sub {
+      font-size: 1.1rem;
+      color: #666;
+      margin-bottom: 2rem;
+    }
+
+    /* Auth Card */
+    .auth-card {
+      background: #FFFFFF;
+      border: 1px solid #E5E5E5;
+      border-radius: 24px;
+      padding: 2rem;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.02);
+    }
+
+    .auth-card h3 {
+      font-size: 1.2rem;
+      font-weight: 500;
+      margin-bottom: 1.5rem;
+    }
+
+    input {
+      width: 100%;
+      padding: 0.9rem 1rem;
+      background: #FFFFFF;
+      border: 1px solid #E5E5E5;
+      border-radius: 12px;
+      font-size: 0.9rem;
+      font-family: monospace;
+      margin-bottom: 1rem;
+      transition: all 0.2s;
+    }
+
+    input:focus {
+      outline: none;
+      border-color: #000;
+    }
+
+    button {
+      width: 100%;
+      background: #000;
+      color: #FFF;
+      border: none;
+      border-radius: 40px;
+      padding: 0.9rem;
+      font-size: 0.9rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: opacity 0.2s;
+      margin-top: 0.5rem;
+    }
+
+    button:hover {
+      opacity: 0.8;
+    }
+
+    button.secondary {
+      background: #F5F5F5;
+      color: #000;
+      border: 1px solid #E5E5E5;
+    }
+
+    .divider {
+      text-align: center;
+      margin: 1.5rem 0;
+      font-size: 0.75rem;
+      color: #999;
+      position: relative;
+    }
+
+    .divider::before,
+    .divider::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      width: 40%;
+      height: 1px;
+      background: #E5E5E5;
+    }
+
+    .divider::before { left: 0; }
+    .divider::after { right: 0; }
+
+    /* Features */
+    .features {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 2rem;
+      padding: 3rem 0;
+      border-top: 1px solid #E5E5E5;
+    }
+
+    .feature {
+      text-align: center;
+      padding: 1.5rem;
+    }
+
+    .feature-icon {
+      font-size: 2rem;
+      margin-bottom: 1rem;
+    }
+
+    .feature h3 {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+
+    .feature p {
+      font-size: 0.8rem;
+      color: #666;
+    }
+
+    /* Footer */
+    .footer {
+      text-align: center;
+      padding-top: 3rem;
+      border-top: 1px solid #E5E5E5;
+      font-size: 0.7rem;
+      color: #999;
+    }
+
+    .footer a {
+      color: #000;
+      text-decoration: none;
+      margin: 0 0.5rem;
+    }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: #000;
+      color: #FFF;
+      padding: 0.75rem 1.25rem;
+      border-radius: 40px;
+      font-size: 0.8rem;
+      z-index: 1000;
+      animation: fadeIn 0.2s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Responsive */
+    @media (max-width: 800px) {
+      .hero { grid-template-columns: 1fr; gap: 2rem; }
+      h1 { font-size: 2.5rem; }
+      .features { grid-template-columns: 1fr; }
+      .container { padding: 1.5rem; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <header class="header">
+    <div class="logo">
+      <span class="logo-icon">⌛</span>
+      <span class="logo-text">DMA</span>
+    </div>
+    <div>
+      <a href="#" class="nav-link">About</a>
+      <a href="#" class="nav-link">How it works</a>
+      <a href="attestation-ledger.html" class="nav-link">Ledger</a>
+    </div>
+  </header>
+
+  <div class="hero">
+    <div>
+      <h1>Your will,<br>executed <span class="highlight">autonomously.</span></h1>
+      <div class="sub">
+        When you stop responding, the agent acts.<br>
+        On-chain heartbeat. Verifiable. Trustless.
+      </div>
+      <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+        <button onclick="window.location.href='signup.html'" style="width: auto; padding: 0.8rem 2rem;">Get started →</button>
+        <button class="secondary" onclick="document.getElementById('signinCard').scrollIntoView({ behavior: 'smooth' })" style="width: auto; padding: 0.8rem 2rem;">Sign in</button>
+      </div>
+    </div>
+
+    <div class="auth-card" id="signinCard">
+      <h3>Sign in to your agent</h3>
+      <input type="email" id="loginEmail" placeholder="Email" autocomplete="email">
+      <input type="password" id="loginPassword" placeholder="Password" autocomplete="current-password">
+      <button onclick="handleSignIn()">Continue</button>
+      <div class="divider">or</div>
+      <button class="secondary" onclick="connectWallet()">Connect wallet</button>
+      <div style="text-align: center; margin-top: 1rem; font-size: 0.75rem;">
+        No account? <a href="signup.html" style="color: #000;">Sign up</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="features">
+    <div class="feature">
+      <div class="feature-icon">❤️</div>
+      <h3>On-chain heartbeat</h3>
+      <p>Regular pings prove you're alive. Miss X days = trigger.</p>
+    </div>
+    <div class="feature">
+      <div class="feature-icon">📦</div>
+      <h3>Decentralized storage</h3>
+      <p>Your will stored permanently on 0G Storage.</p>
+    </div>
+    <div class="feature">
+      <div class="feature-icon">🤖</div>
+      <h3>Autonomous executor</h3>
+      <p>Sends assets, notifies kin — all on-chain attested.</p>
+    </div>
+  </div>
+
+  <footer class="footer">
+    <p>Dead Man's Agent · Autonomous succession</p>
+    <p style="margin-top: 0.5rem;">
+      <a href="#">Privacy</a> · <a href="#">Terms</a> · <a href="#">Contact</a>
+    </p>
+  </footer>
+</div>
+
+<script>
+  function showToast(message, isError = false) {
+    const existing = document.querySelector('.toast');
+    if (existing) existing.remove();
+    const toast = document.createElement('div');
+    toast.className = 'toast';
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 3000);
+  }
+
+  function handleSignIn() {
+    const email = document.getElementById('loginEmail').value.trim().toLowerCase();
+    const password = document.getElementById('loginPassword').value;
+
+    if (!email || !password) {
+      showToast('Enter email and password', true);
+      return;
+    }
+
+    const stored = localStorage.getItem('dma_user');
+    if (stored) {
+      const user = JSON.parse(stored);
+      if (user.email === email) {
+        showToast('Welcome back!');
+        setTimeout(() => { window.location.href = 'dashboard.html'; }, 500);
+      } else {
+        showToast('Account not found. Sign up first.', true);
+      }
+    } else {
+      showToast('No account found. Please sign up.', true);
+    }
+  }
+
+  async function connectWallet() {
+    if (typeof window.ethereum !== 'undefined') {
+      try {
+        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+        const address = accounts[0];
+        localStorage.setItem('dma_wallet', address);
+        showToast(`Connected: ${address.slice(0,6)}...${address.slice(-4)}`);
+        setTimeout(() => { window.location.href = 'dashboard.html'; }, 500);
+      } catch(e) {
+        showToast('Connection rejected', true);
+      }
+    } else {
+      showToast('Install MetaMask', true);
+    }
+  }
+
+  window.handleSignIn = handleSignIn;
+  window.connectWallet = connectWallet;
+</script>
+
+</body>
+</html>
