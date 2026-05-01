@@ -1,14 +1,8 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-interface User {
-  email: string;
-  name: string;
-  wallet?: string;
-}
-
 interface AuthState {
-  user: User | null;
+  user: { email: string; name: string; wallet?: string } | null;
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
