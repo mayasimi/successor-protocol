@@ -1,29 +1,7 @@
 import { z } from "zod";
 
-export const loginSchema = z.object({
-  email: z.string().email("Invalid email address"),
-  password: z.string().min(8, "Password must be at least 8 characters"),
-});
-
-export const signupSchema = z
-  .object({
-    name: z.string().min(2, "Name must be at least 2 characters"),
-    email: z.string().email("Invalid email address"),
-    password: z.string().min(8, "Password must be at least 8 characters"),
-    confirmPassword: z.string(),
-  })
-  .refine((data) => data.password === data.confirmPassword, {
-    message: "Passwords do not match",
-    path: ["confirmPassword"],
-  });
-
-export const kinSchema = z.object({
-  name: z.string().min(2, "Name is required"),
-  email: z.string().email("Invalid email address"),
-  walletAddress: z.string().optional(),
-  allocationPercent: z.number().min(1).max(100),
-});
-
-export type LoginInput = z.infer<typeof loginSchema>;
-export type SignupInput = z.infer<typeof signupSchema>;
-export type KinInput = z.infer<typeof kinSchema>;
+export const emailSchema = z.string().email().max(255);
+export const passwordSchema = z.string().min(8).max(64);
+export const walletAddressSchema = z.string().regex(/^0x[a-fA-F0-9]{40}$/);
+export const nameSchema = z.string().min(1).max(100).regex(/^[a-zA-Z\s'-]+$/);
+export const graceDaysSchema = z.enum(["3", "7", "14"]).transform(Number);

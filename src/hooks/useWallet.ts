@@ -1,19 +1,12 @@
-"use client";
-
-import { useAccount, useDisconnect, useBalance } from "wagmi";
-import { shortenAddress } from "@/lib/utils";
+import { useAccount, useConnect, useDisconnect } from "wagmi";
+import { injected } from "wagmi/connectors";
 
 export function useWallet() {
-  const { address, isConnected, chain } = useAccount();
+  const { address, isConnected } = useAccount();
+  const { connect } = useConnect();
   const { disconnect } = useDisconnect();
-  const { data: balance } = useBalance({ address });
 
-  return {
-    address,
-    shortAddress: address ? shortenAddress(address) : null,
-    isConnected,
-    chain,
-    balance,
-    disconnect,
-  };
+  const connectWallet = () => connect({ connector: injected() });
+
+  return { address, isConnected, connectWallet, disconnect };
 }

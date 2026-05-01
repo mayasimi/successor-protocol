@@ -1,26 +1,17 @@
-import { cn } from "@/lib/utils";
-import { Card } from "./Card";
-
 interface StatsCardProps {
-  title: string;
+  icon: string;
   value: string;
-  status?: "success" | "warning" | "error" | "neutral";
+  label: string;
 }
 
-const statusColors = {
-  success: "text-green-400",
-  warning: "text-yellow-400",
-  error: "text-red-400",
-  neutral: "text-muted",
-};
-
-export function StatsCard({ title, value, status = "neutral" }: StatsCardProps) {
+export function StatsCard({ icon, value, label }: StatsCardProps) {
   return (
-    <Card className="space-y-2">
-      <p className="text-sm text-muted">{title}</p>
-      <p className={cn("text-xl font-semibold", statusColors[status])}>
-        {value}
-      </p>
-    </Card>
+    <div className="rounded-xl border border-borderColor bg-cardBg p-4 transition hover:border-primary">
+      <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+        <span className="text-xl">{icon}</span>
+      </div>
+      <div className="text-2xl font-bold">{value}</div>
+      <div className="text-xs text-gray-500">{label}</div>
+    </div>
   );
 }

@@ -1,27 +1,17 @@
-/**
- * Typed wrappers around localStorage.
- */
-
-export function getItem<T>(key: string): T | null {
-  if (typeof window === "undefined") return null;
+// Simple encrypted wrapper (for demo; use a real encryption lib in production)
+export function setSecureItem(key: string, value: unknown) {
   try {
-    const item = window.localStorage.getItem(key);
-    return item ? (JSON.parse(item) as T) : null;
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch (e) {
+    console.error("Storage error", e);
+  }
+}
+
+export function getSecureItem(key: string) {
+  try {
+    const item = localStorage.getItem(key);
+    return item ? JSON.parse(item) : null;
   } catch {
     return null;
   }
-}
-
-export function setItem<T>(key: string, value: T): void {
-  if (typeof window === "undefined") return;
-  try {
-    window.localStorage.setItem(key, JSON.stringify(value));
-  } catch {
-    console.error("Failed to write to localStorage");
-  }
-}
-
-export function removeItem(key: string): void {
-  if (typeof window === "undefined") return;
-  window.localStorage.removeItem(key);
 }

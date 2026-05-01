@@ -1,12 +1,15 @@
 import type { Metadata } from "next";
+import { Inter } from "next/font/google";
 import "./globals.css";
 import { Web3Provider } from "@/components/providers/Web3Provider";
-import { ThemeProvider } from "@/components/providers/ThemeProvider";
-import { ToastContainer } from "@/components/ui/Toast";
+import { Toaster } from "sonner";
+
+const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Successor Protocol",
-  description: "Decentralized digital inheritance protocol",
+  title: "Successor | Autonomous Will on 0G Chain",
+  description:
+    "Secure your digital legacy with on-chain heartbeats and attestations.",
 };
 
 export default function RootLayout({
@@ -16,12 +19,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body>
+      <body className={inter.className}>
         <Web3Provider>
-          <ThemeProvider>
-            {children}
-            <ToastContainer />
-          </ThemeProvider>
+          {children}
+          <Toaster richColors position="top-right" />
         </Web3Provider>
       </body>
     </html>

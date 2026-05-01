@@ -1,34 +1,26 @@
 "use client";
 
-import { useAccount, useConnect, useDisconnect } from "wagmi";
-import { injected } from "@wagmi/connectors";
 import { Button } from "@/components/ui/Button";
-import { shortenAddress } from "@/lib/utils";
+import { useWallet } from "@/hooks/useWallet";
+import { truncateAddress } from "@/lib/utils";
 
 export function WalletButton() {
-  const { address, isConnected } = useAccount();
-  const { connect } = useConnect();
-  const { disconnect } = useDisconnect();
+  const { address, isConnected, connectWallet, disconnect } = useWallet();
 
   if (isConnected && address) {
     return (
       <Button
-        variant="outline"
-        size="sm"
+        variant="secondary"
         onClick={() => disconnect()}
         aria-label="Disconnect wallet"
       >
-        {shortenAddress(address)}
+        {truncateAddress(address)}
       </Button>
     );
   }
 
   return (
-    <Button
-      size="sm"
-      onClick={() => connect({ connector: injected() })}
-      aria-label="Connect wallet"
-    >
+    <Button onClick={connectWallet} aria-label="Connect wallet">
       Connect Wallet
     </Button>
   );
