@@ -22,7 +22,7 @@ export default function RootLayout({
       <body className={inter.className}>
         <Web3Provider>
           {children}
-          <Toaster richColors position="top-right" />
+          <Toaster richColors position="bottom-right" />
         </Web3Provider>
       </body>
     </html>

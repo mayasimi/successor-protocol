@@ -1,19 +1,22 @@
-"use client";
-
-import { useState } from "react";
-import { getItem, setItem } from "@/lib/storage";
+import { useState, useEffect } from "react";
 
 export function useLocalStorage<T>(key: string, initialValue: T) {
-  const [storedValue, setStoredValue] = useState<T>(
-    () => getItem<T>(key) ?? initialValue
-  );
+  const [storedValue, setStoredValue] = useState<T>(() => {
+    try {
+      const item = localStorage.getItem(key);
+      return item ? (JSON.parse(item) as T) : initialValue;
+    } catch {
+      return initialValue;
+    }
+  });
 
-  const setValue = (value: T | ((prev: T) => T)) => {
-    const valueToStore =
-      value instanceof Function ? value(storedValue) : value;
-    setStoredValue(valueToStore);
-    setItem(key, valueToStore);
-  };
+  useEffect(() => {
+    try {
+      localStorage.setItem(key, JSON.stringify(storedValue));
+    } catch (e) {
+      console.error("Failed to write to localStorage", e);
+    }
+  }, [key, storedValue]);
 
-  return [storedValue, setValue] as const;
+  return [storedValue, setStoredValue] as const;
 }
