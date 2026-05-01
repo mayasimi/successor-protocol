@@ -1,0 +1,3 @@
+# Public
+
+Static assets (images, fonts, icons) go here.
