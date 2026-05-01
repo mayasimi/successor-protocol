@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { Web3Provider } from "@/components/providers/Web3Provider";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
-import { Toaster } from "react-hot-toast";
+import { ToastContainer } from "@/components/ui/Toast";
 
 export const metadata: Metadata = {
   title: "Successor Protocol",
@@ -20,7 +20,7 @@ export default function RootLayout({
         <Web3Provider>
           <ThemeProvider>
             {children}
-            <Toaster position="top-right" />
+            <ToastContainer />
           </ThemeProvider>
         </Web3Provider>
       </body>
