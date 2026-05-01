@@ -3,17 +3,18 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { WagmiProvider, createConfig, http } from "wagmi";
 import { mainnet, polygon } from "wagmi/chains";
-import { walletConnect, injected } from "wagmi/connectors";
+import { injected } from "wagmi/connectors";
 
-const projectId = process.env.NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID!;
-
+// Only use injected connector to avoid WalletConnect SSR issues
+// when no valid project ID is set
 const config = createConfig({
   chains: [mainnet, polygon],
-  connectors: [injected(), walletConnect({ projectId })],
+  connectors: [injected()],
   transports: {
     [mainnet.id]: http(),
     [polygon.id]: http(),
   },
+  ssr: true,
 });
 
 const queryClient = new QueryClient();

@@ -2,12 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useAccount, useConnect, useDisconnect } from "wagmi";
-import { injected } from "wagmi/connectors";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { useAuth } from "@/hooks/useAuth";
-import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { toast } from "sonner";
 
 export default function LoginPage() {
@@ -16,90 +13,26 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
-  const { address, isConnected } = useAccount();
-  const { connect } = useConnect();
-  const { disconnect: _disconnect } = useDisconnect();
-  const [pendingReg] = useLocalStorage<{
-    ownerEmail: string;
-    passwordHash: string;
-    ownerName: string;
-    wallet: string;
-    chain: string;
-  } | null>("pending_registration", null);
-  const [, setUser] = useLocalStorage<object | null>("successor_user", null);
 
-  // Email login
   const handleEmailLogin = async () => {
     if (!email || !password) {
       toast.error("Please enter email and password");
       return;
     }
-    setIsLoading(true);
-
-    // Check against stored user session first
-    const userFromStorage = localStorage.getItem("successor_user");
-    if (userFromStorage) {
-      try {
-        const user = JSON.parse(userFromStorage);
-        if (user.email === email) {
-          toast.success("Logged in");
-          router.push("/dashboard");
-          setIsLoading(false);
-          return;
-        }
-      } catch {
-        // ignore parse errors
-      }
-    }
-
-    if (
-      pendingReg &&
-      pendingReg.ownerEmail === email &&
-      btoa(password) === pendingReg.passwordHash
-    ) {
-      const userData = {
-        email,
-        authenticated: true,
-        ownerName: pendingReg.ownerName,
-        wallet: pendingReg.wallet,
-        chain: pendingReg.chain,
-      };
-      setUser(userData);
-      await login(email, password);
-      toast.success("Logged in");
-      router.push("/dashboard");
-    } else {
-      toast.error("Invalid credentials or account not found");
-    }
-    setIsLoading(false);
-  };
-
-  // Wallet login
-  const handleWalletLogin = async () => {
-    if (typeof window === "undefined" || !window.ethereum) {
-      toast.error("MetaMask not installed");
+    if (password.length < 6) {
+      toast.error("Password must be at least 6 characters");
       return;
     }
-    try {
-      await connect({ connector: injected() });
-      // Wait for wagmi state to settle
-      setTimeout(() => {
-        if (isConnected && address) {
-          const userData = {
-            wallet: address,
-            authenticated: true,
-            email: null,
-            ownerName: "Web3 User",
-          };
-          setUser(userData);
-          toast.success(`Connected: ${address.slice(0, 6)}...${address.slice(-4)}`);
-          router.push("/dashboard");
-        } else {
-          toast.error("Connection failed");
-        }
-      }, 1000);
-    } catch {
-      toast.error("Connection failed");
+
+    setIsLoading(true);
+    const success = await login(email, password);
+
+    if (success) {
+      toast.success("Welcome back!");
+      router.push("/dashboard");
+    } else {
+      toast.error("Login failed");
+      setIsLoading(false);
     }
   };
 
@@ -134,7 +67,7 @@ export default function LoginPage() {
               placeholder="alex@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              required
+              onKeyDown={(e) => e.key === "Enter" && handleEmailLogin()}
             />
           </div>
 
@@ -151,7 +84,7 @@ export default function LoginPage() {
               placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              required
+              onKeyDown={(e) => e.key === "Enter" && handleEmailLogin()}
             />
           </div>
 
@@ -163,7 +96,7 @@ export default function LoginPage() {
             Sign in →
           </Button>
 
-          <div className="relative my-6">
+          <div className="relative my-4">
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t border-borderColor" />
             </div>
@@ -172,15 +105,7 @@ export default function LoginPage() {
             </div>
           </div>
 
-          <Button
-            variant="outline"
-            onClick={handleWalletLogin}
-            className="w-full"
-          >
-            🦊 Connect wallet
-          </Button>
-
-          <p className="mt-6 text-center text-xs text-gray-400">
+          <p className="mt-4 text-center text-xs text-gray-400">
             No account?{" "}
             <a href="/signup" className="text-accent hover:underline">
               Create account
