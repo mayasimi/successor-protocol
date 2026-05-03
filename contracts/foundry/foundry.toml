@@ -1,0 +1,35 @@
+[profile.default]
+src     = "src"
+out     = "out"
+libs    = ["lib"]
+test    = "test"
+script  = "script"
+solc    = "0.8.19"
+
+# Optimizer – same settings used in the Hardhat build
+optimizer        = true
+optimizer_runs   = 200
+
+# EVM target – 0G Chain is EVM-compatible; paris is safe for 0.8.19
+evm_version = "paris"
+
+# Show detailed test output by default
+verbosity = 2
+
+# Gas snapshots written here
+# gas_snapshot = ".gas-snapshot"
+
+[profile.ci]
+# Stricter settings for CI: fail on any warning
+deny_warnings = true
+verbosity     = 3
+
+[rpc_endpoints]
+# 0G Chain testnet  (Chain ID 16600)
+zg_testnet  = "${ZG_RPC_URL}"
+# Local anvil node
+localhost   = "http://127.0.0.1:8545"
+
+[etherscan]
+# 0G Chain explorer – add API key when available
+zg_testnet = { key = "${ZG_EXPLORER_API_KEY}", url = "${ZG_EXPLORER_URL}" }

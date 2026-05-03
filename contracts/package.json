@@ -1,0 +1,16 @@
+{
+  "name": "successor-contracts",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "test":    "hardhat test",
+    "compile": "hardhat compile",
+    "deploy":  "hardhat run scripts/deploy.js --network 0g-testnet",
+    "deploy:local": "hardhat run scripts/deploy.js --network hardhat"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "hardhat": "^2.22.0",
+    "dotenv": "^16.4.5"
+  }
+}

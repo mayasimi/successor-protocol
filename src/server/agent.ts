@@ -12,7 +12,7 @@ import {
   isExecutionEligible,
   refreshHeartbeatStatus,
 } from "./heartbeat";
-import { transferUsdc } from "./kite";
+import { transferUsdc, verifyDeathOnChain, executeAllOnChain } from "./kite";
 import { agentRunSchema } from "./schemas";
 import type {
   AgentInstructionReport,
@@ -163,6 +163,9 @@ async function runPlan(
     },
   });
 
+  // Call verifyDeath() on the Successor contract (no-op in mock mode).
+  const verifyReceipt = await verifyDeathOnChain();
+
   await createAttestation({
     planId,
     type: "execution_started",
@@ -172,6 +175,7 @@ async function runPlan(
       agentId: plan.agentId,
       passportSession: plan.passportSession,
       queuedInstructions: queuedInstructions.map((instruction) => instruction.id),
+      onChainVerifyTxHash: verifyReceipt.txHash,
     },
   });
 
@@ -216,6 +220,19 @@ async function runPlan(
       subjectId: plan.agentId,
       payload: {
         instructionReports,
+      },
+    });
+
+    // Trigger on-chain executeAll() to mirror the off-chain execution result.
+    const execReceipt = await executeAllOnChain();
+    await createAttestation({
+      planId,
+      type: "execution_completed",
+      action: "agent.execute.onchain",
+      subjectId: execReceipt.txHash,
+      payload: {
+        txHash: execReceipt.txHash,
+        provider: execReceipt.provider,
       },
     });
   }

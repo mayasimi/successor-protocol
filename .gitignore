@@ -35,3 +35,17 @@ next-env.d.ts
 
 # local backend demo state
 .successor-data/
+
+# contracts – hardhat build artifacts & deps
+contracts/artifacts/
+contracts/cache/
+contracts/node_modules/
+
+# contracts – foundry build artifacts
+contracts/foundry/out/
+contracts/foundry/cache/
+contracts/foundry/broadcast/
+contracts/foundry/.gas-snapshot
+contracts/foundry/.env
+# foundry deps – tracked as git submodule pointer, not file contents
+# (do NOT add contracts/foundry/lib/ here)

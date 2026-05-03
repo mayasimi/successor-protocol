@@ -1,24 +1,104 @@
 "use client";
 
+import { useEffect } from "react";
 import { useAccount } from "wagmi";
+import { toast } from "sonner";
+import { usePing, useSuccessorStatus, useLastPing } from "@/hooks/useSuccessor";
+import { contractStateLabel } from "@/lib/contracts";
 
-const statCards = [
-  { icon: "fa-heartbeat", value: "2h ago", label: "Last Heartbeat" },
-  { icon: "fa-clock", value: "6d 22h", label: "Until Trigger" },
-  { icon: "fa-file-signature", value: "4", label: "Instructions" },
-  { icon: "fa-database", value: "190 MB", label: "0G Storage" },
-];
+function formatRelativeTime(date: Date | null): string {
+  if (!date) return "—";
+  const diffMs = Date.now() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  if (diffMins < 1) return "Just now";
+  if (diffMins < 60) return `${diffMins}m ago`;
+  const diffHours = Math.floor(diffMins / 60);
+  if (diffHours < 24) return `${diffHours}h ago`;
+  return `${Math.floor(diffHours / 24)}d ago`;
+}
 
 export default function DashboardPage() {
   const { isConnected } = useAccount();
+  const { status, isLoading: statusLoading, refetch } = useSuccessorStatus();
+  const { lastPingDate } = useLastPing();
+  const { ping, isPending, isSuccess, error, isContractConfigured } = usePing();
 
-  const sendHeartbeat = () => {
+  useEffect(() => {
+    if (isSuccess) {
+      toast.success("Heartbeat sent on-chain ✓");
+      refetch();
+    }
+  }, [isSuccess, refetch]);
+
+  useEffect(() => {
+    if (error) {
+      const msg = (error as Error).message ?? "";
+      toast.error(
+        msg.includes("NotOwner")
+          ? "Only the contract owner can send a heartbeat"
+          : "Heartbeat failed"
+      );
+    }
+  }, [error]);
+
+  const handleHeartbeat = () => {
     if (!isConnected) {
-      alert("Connect wallet first");
+      toast.error("Connect your wallet first");
       return;
     }
-    alert("✅ Heartbeat sent! Transaction signed on 0G Chain");
+    if (!isContractConfigured) {
+      toast.info("Contract not deployed — running in demo mode");
+      return;
+    }
+    ping();
   };
+
+  const statCards = [
+    {
+      icon: "fa-heartbeat",
+      value: statusLoading ? "…" : formatRelativeTime(lastPingDate),
+      label: "Last Heartbeat",
+    },
+    {
+      icon: "fa-clock",
+      value: statusLoading
+        ? "…"
+        : status?.isTriggered
+        ? "Triggered"
+        : status?.timeRemainingLabel ?? "—",
+      label: "Until Trigger",
+    },
+    {
+      icon: "fa-file-signature",
+      value: statusLoading
+        ? "…"
+        : status
+        ? String(status.totalInstructions)
+        : "—",
+      label: "Instructions",
+    },
+    {
+      icon: "fa-shield-alt",
+      value: statusLoading
+        ? "…"
+        : status
+        ? contractStateLabel(status.currentState)
+        : "—",
+      label: "Contract State",
+    },
+  ];
+
+  const statusColor = status?.isTriggered
+    ? "#ef4444"
+    : status?.isExecuting || status?.isCompleted
+    ? "#D4AF37"
+    : "#7A8B5E";
+
+  const progressPct = status
+    ? status.triggered
+      ? 0
+      : 48
+    : 48;
 
   return (
     <div>
@@ -44,13 +124,11 @@ export default function DashboardPage() {
             }}
             onMouseEnter={(e) => {
               (e.currentTarget as HTMLElement).style.borderColor = "#7A8B5E";
-              (e.currentTarget as HTMLElement).style.transform =
-                "translateY(-2px)";
+              (e.currentTarget as HTMLElement).style.transform = "translateY(-2px)";
             }}
             onMouseLeave={(e) => {
               (e.currentTarget as HTMLElement).style.borderColor = "#1E1E24";
-              (e.currentTarget as HTMLElement).style.transform =
-                "translateY(0)";
+              (e.currentTarget as HTMLElement).style.transform = "translateY(0)";
             }}
           >
             <div
@@ -67,7 +145,7 @@ export default function DashboardPage() {
             >
               <i className={`fas ${s.icon}`} style={{ color: "#7A8B5E" }} />
             </div>
-            <div style={{ fontSize: "1.6rem", fontWeight: 700 }}>{s.value}</div>
+            <div style={{ fontSize: "1.4rem", fontWeight: 700 }}>{s.value}</div>
             <div style={{ fontSize: "0.8rem", color: "#888", marginTop: "4px" }}>
               {s.label}
             </div>
@@ -79,7 +157,7 @@ export default function DashboardPage() {
       <div
         style={{
           background: "#111115",
-          border: "1px solid #1E1E24",
+          border: `1px solid ${statusColor}40`,
           borderRadius: "20px",
           padding: "1.5rem",
           marginBottom: "1.5rem",
@@ -94,10 +172,13 @@ export default function DashboardPage() {
           }}
         >
           <h3 style={{ fontWeight: 600 }}>On-Chain Heartbeat</h3>
-          <span style={{ color: "#D4AF37", fontSize: "0.7rem", cursor: "pointer" }}>
-            View on 0G Explorer
-          </span>
+          {!isContractConfigured && (
+            <span style={{ color: "#D4AF37", fontSize: "0.7rem" }}>
+              Demo mode
+            </span>
+          )}
         </div>
+
         <div style={{ marginBottom: "1rem" }}>
           <div
             style={{
@@ -109,7 +190,13 @@ export default function DashboardPage() {
             }}
           >
             <span>Time remaining</span>
-            <span>6 days 22 hours</span>
+            <span style={{ color: statusColor }}>
+              {statusLoading
+                ? "Loading…"
+                : status?.isTriggered
+                ? "⚠️ Triggered"
+                : status?.timeRemainingLabel ?? "—"}
+            </span>
           </div>
           <div
             style={{
@@ -122,80 +209,63 @@ export default function DashboardPage() {
             <div
               style={{
                 height: "100%",
-                width: "48%",
-                background: "linear-gradient(90deg,#7A8B5E,#D4AF37)",
+                width: `${progressPct}%`,
+                background: `linear-gradient(90deg,${statusColor},#D4AF37)`,
                 borderRadius: "4px",
+                transition: "width 0.5s ease",
               }}
             />
           </div>
         </div>
+
         <button
-          onClick={sendHeartbeat}
+          onClick={handleHeartbeat}
+          disabled={isPending || status?.isTriggered || status?.isCompleted}
           style={{
             width: "100%",
-            background: "linear-gradient(135deg,#7A8B5E,#5A6B3E)",
+            background:
+              isPending || status?.isTriggered
+                ? "#333"
+                : "linear-gradient(135deg,#7A8B5E,#5A6B3E)",
             border: "none",
             padding: "12px",
             borderRadius: "40px",
             color: "#fff",
             fontWeight: 600,
-            cursor: "pointer",
+            cursor:
+              isPending || status?.isTriggered || status?.isCompleted
+                ? "not-allowed"
+                : "pointer",
             fontSize: "0.9rem",
           }}
         >
           <i className="fas fa-heartbeat" style={{ marginRight: "8px" }} />
-          Send Heartbeat (0.0001 ZG)
+          {isPending
+            ? "Confirming…"
+            : status?.isTriggered
+            ? "Contract Triggered"
+            : "Send Heartbeat"}
         </button>
       </div>
 
-      {/* Active Instructions Card */}
-      <div
-        style={{
-          background: "#111115",
-          border: "1px solid #1E1E24",
-          borderRadius: "20px",
-          padding: "1.5rem",
-        }}
-      >
+      {/* Contract status banner when triggered */}
+      {status?.isTriggered && (
         <div
           style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginBottom: "1.25rem",
+            background: "#1a0a0a",
+            border: "1px solid #ef444440",
+            borderRadius: "20px",
+            padding: "1.25rem",
+            marginBottom: "1.5rem",
+            color: "#ef4444",
+            fontSize: "0.9rem",
           }}
         >
-          <h3 style={{ fontWeight: 600 }}>Active Instructions</h3>
-          <span style={{ color: "#D4AF37", fontSize: "0.7rem", cursor: "pointer" }}>
-            Add Instruction
-          </span>
+          <i className="fas fa-exclamation-triangle" style={{ marginRight: "8px" }} />
+          Grace period has elapsed. The next-of-kin can now call{" "}
+          <code>verifyDeath()</code> to begin execution.
         </div>
-        {[
-          { icon: "fa-coins", title: "Send 5000 USDC", sub: "To: 0x71C...6d8F" },
-          {
-            icon: "fa-envelope",
-            title: "Notify Next of Kin",
-            sub: "jamie@example.com",
-          },
-        ].map((item) => (
-          <div
-            key={item.title}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "12px",
-              padding: "12px 0",
-              borderBottom: "1px solid #1E1E24",
-            }}
-          >
-            <i className={`fas ${item.icon}`} style={{ color: "#7A8B5E" }} />
-            <div>
-              <div style={{ fontSize: "0.9rem" }}>{item.title}</div>
-              <div style={{ fontSize: "0.7rem", color: "#888" }}>{item.sub}</div>
-            </div>
-          </div>
-        ))}
-      </div>
+      )}
     </div>
   );
 }

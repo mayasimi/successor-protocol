@@ -1,0 +1,12 @@
+# Foundry build artifacts
+out/
+cache/
+broadcast/
+.gas-snapshot
+
+# Environment
+.env
+
+# Foundry installs deps as git submodules – the submodule pointer IS tracked.
+# Only ignore the contents of lib/ that aren't submodule entries.
+# lib/

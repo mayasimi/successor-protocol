@@ -9,7 +9,7 @@ import {
 } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 
-import { getKiteConfig } from "./config";
+import { getKiteConfig, getSuccessorContractAddress } from "./config";
 import { addHoursIso, makeId, makeTxHash, nowIso, sha256Hex } from "./crypto";
 import type {
   Attestation,
@@ -226,4 +226,165 @@ function liveReceipt(txHash: Hash, metadata: Record<string, unknown>): KiteRecei
     explorerUrl: `${config.blockExplorerUrl}/tx/${txHash}`,
     metadata,
   };
+}
+
+// ─── Successor.sol contract integration ──────────────────────────────────────
+
+/**
+ * Minimal ABI slice for the Successor contract – server-side only.
+ * The full ABI lives in src/lib/contracts.ts for the frontend.
+ */
+const successorAbi = [
+  {
+    type: "function",
+    name: "ping",
+    stateMutability: "nonpayable",
+    inputs: [],
+    outputs: [],
+  },
+  {
+    type: "function",
+    name: "verifyDeath",
+    stateMutability: "nonpayable",
+    inputs: [],
+    outputs: [],
+  },
+  {
+    type: "function",
+    name: "executeAll",
+    stateMutability: "nonpayable",
+    inputs: [],
+    outputs: [],
+  },
+  {
+    type: "function",
+    name: "addInstruction",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "target", type: "address" },
+      { name: "data", type: "bytes" },
+      { name: "value", type: "uint256" },
+      { name: "description", type: "string" },
+    ],
+    outputs: [],
+  },
+  {
+    type: "function",
+    name: "getStatus",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [
+      { name: "triggered", type: "bool" },
+      { name: "currentState", type: "uint8" },
+      { name: "timeRemaining", type: "uint256" },
+      { name: "totalInstructions", type: "uint256" },
+    ],
+  },
+] as const;
+
+/**
+ * Sends a heartbeat ping to the Successor contract from the agent wallet.
+ * Used by the backend agent when recording a server-side heartbeat.
+ * Falls back to a mock receipt when the contract address is not configured.
+ */
+export async function pingSuccessorContract(): Promise<KiteReceipt> {
+  const config = getKiteConfig();
+  const contractAddress = getSuccessorContractAddress();
+
+  if (config.mode !== "live" || !contractAddress || !config.privateKey) {
+    return mockReceipt("successor.ping", { contractAddress });
+  }
+
+  const client = createKiteWalletClient();
+  const txHash = await client.writeContract({
+    address: contractAddress,
+    abi: successorAbi,
+    functionName: "ping",
+  });
+
+  return liveReceipt(txHash, { kind: "successor.ping", contractAddress });
+}
+
+/**
+ * Calls verifyDeath() on the Successor contract from the agent wallet.
+ * Only succeeds if the grace period has elapsed on-chain.
+ */
+export async function verifyDeathOnChain(): Promise<KiteReceipt> {
+  const config = getKiteConfig();
+  const contractAddress = getSuccessorContractAddress();
+
+  if (config.mode !== "live" || !contractAddress || !config.privateKey) {
+    return mockReceipt("successor.verifyDeath", { contractAddress });
+  }
+
+  const client = createKiteWalletClient();
+  const txHash = await client.writeContract({
+    address: contractAddress,
+    abi: successorAbi,
+    functionName: "verifyDeath",
+  });
+
+  return liveReceipt(txHash, { kind: "successor.verifyDeath", contractAddress });
+}
+
+/**
+ * Calls executeAll() on the Successor contract from the agent wallet.
+ * Triggers on-chain execution of all queued instructions.
+ */
+export async function executeAllOnChain(): Promise<KiteReceipt> {
+  const config = getKiteConfig();
+  const contractAddress = getSuccessorContractAddress();
+
+  if (config.mode !== "live" || !contractAddress || !config.privateKey) {
+    return mockReceipt("successor.executeAll", { contractAddress });
+  }
+
+  const client = createKiteWalletClient();
+  const txHash = await client.writeContract({
+    address: contractAddress,
+    abi: successorAbi,
+    functionName: "executeAll",
+  });
+
+  return liveReceipt(txHash, { kind: "successor.executeAll", contractAddress });
+}
+
+/**
+ * Queues an instruction on the Successor contract from the agent wallet.
+ * Called when a new instruction is added to a plan.
+ */
+export async function addInstructionOnChain(params: {
+  target: `0x${string}`;
+  data?: `0x${string}`;
+  value?: bigint;
+  description: string;
+}): Promise<KiteReceipt> {
+  const config = getKiteConfig();
+  const contractAddress = getSuccessorContractAddress();
+
+  if (config.mode !== "live" || !contractAddress || !config.privateKey) {
+    return mockReceipt("successor.addInstruction", {
+      contractAddress,
+      description: params.description,
+    });
+  }
+
+  const client = createKiteWalletClient();
+  const txHash = await client.writeContract({
+    address: contractAddress,
+    abi: successorAbi,
+    functionName: "addInstruction",
+    args: [
+      params.target,
+      params.data ?? "0x",
+      params.value ?? 0n,
+      params.description,
+    ],
+  });
+
+  return liveReceipt(txHash, {
+    kind: "successor.addInstruction",
+    contractAddress,
+    description: params.description,
+  });
 }

@@ -80,3 +80,12 @@ export function getKiteConfig(): KiteConfig {
 export function getDataFilePath() {
   return process.env.SUCCESSOR_DATA_PATH ?? ".successor-data/state.json";
 }
+
+/**
+ * Returns the deployed Successor.sol contract address, or undefined when
+ * running in mock mode without a deployed contract.
+ */
+export function getSuccessorContractAddress(): `0x${string}` | undefined {
+  const addr = process.env.SUCCESSOR_CONTRACT_ADDRESS;
+  return addr?.match(/^0x[a-fA-F0-9]{40}$/) ? (addr as `0x${string}`) : undefined;
+}
