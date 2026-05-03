@@ -1,22 +1,19 @@
 "use client";
 
-import { useAccount, useConnect, useDisconnect } from "wagmi";
-import { injected } from "wagmi/connectors";
-import { useAuth } from "@/hooks/useAuth";
+import { useWallet } from "@/hooks/useWallet";
 
 export function Header() {
-  const { address, isConnected } = useAccount();
-  const { connect } = useConnect();
-  const { disconnect } = useDisconnect();
+  const { address, isConnected, isPending, error, connectWallet, disconnect } =
+    useWallet();
 
   const handleWallet = async () => {
     if (isConnected) {
       disconnect();
     } else {
       try {
-        await connect({ connector: injected() });
+        await connectWallet();
       } catch {
-        alert("Install MetaMask to connect a wallet");
+        // The hook exposes the error next to the button.
       }
     }
   };
@@ -60,6 +57,7 @@ export function Header() {
 
       <button
         onClick={handleWallet}
+        disabled={isPending}
         style={{
           background: "linear-gradient(135deg,#7A8B5E,#5A6B3E)",
           border: "none",
@@ -69,6 +67,7 @@ export function Header() {
           fontWeight: 600,
           fontSize: "0.8rem",
           cursor: "pointer",
+          opacity: isPending ? 0.7 : 1,
           display: "flex",
           alignItems: "center",
           gap: "8px",
@@ -77,8 +76,13 @@ export function Header() {
         <i className="fas fa-wallet" />
         {isConnected && address
           ? `${address.slice(0, 6)}...${address.slice(-4)}`
-          : "Connect Wallet"}
+          : isPending
+            ? "Connecting"
+            : "Connect Wallet"}
       </button>
+      {error && (
+        <span style={{ color: "#f87171", fontSize: "0.75rem" }}>{error}</span>
+      )}
     </header>
   );
 }

@@ -1,0 +1,37 @@
+
+> successor-frontend@0.1.0 dev
+> next dev -p 3000
+
+  ▲ Next.js 14.2.5
+  - Local:        http://localhost:3000
+
+ ✓ Starting...
+ ✓ Ready in 14.4s
+ ○ Compiling /src/middleware ...
+ ✓ Compiled /src/middleware in 1972ms (73 modules)
+ ○ Compiling / ...
+ ✓ Compiled /login in 154.6s (9951 modules)
+ GET /login 200 in 130761ms
+ GET / 200 in 3691ms
+ GET / 200 in 606ms
+ ○ Compiling /dashboard ...
+ ✓ Compiled /dashboard in 9s (9952 modules)
+ ○ Compiling /heartbeat ...
+ ✓ Compiled /heartbeat in 3.8s (9958 modules)
+ ○ Compiling /my-will ...
+ ✓ Compiled /my-will in 2.1s (9964 modules)
+ ○ Compiling /next-of-kin ...
+ ✓ Compiled /next-of-kin in 1346ms (9970 modules)
+ ○ Compiling /attestations ...
+ ✓ Compiled /attestations in 3.7s (9972 modules)
+ ○ Compiling /settings ...
+ ✓ Compiled /settings in 2.1s (9964 modules)
+ ○ Compiling /api/health ...
+ ✓ Compiled /api/health in 7.2s (5277 modules)
+ GET /api/health 200 in 7911ms
+ ✓ Compiled in 67.2s (9974 modules)
+ ○ Compiling / ...
+ ✓ Compiled / in 2.3s (5234 modules)
+ GET / 200 in 6362ms
+ GET /dashboard 200 in 133ms
+ GET /dashboard 200 in 103ms
