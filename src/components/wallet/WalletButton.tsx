@@ -5,7 +5,16 @@ import { useWallet } from "@/hooks/useWallet";
 import { truncateAddress } from "@/lib/utils";
 
 export function WalletButton() {
-  const { address, isConnected, connectWallet, disconnect } = useWallet();
+  const { address, isConnected, isPending, error, connectWallet, disconnect } =
+    useWallet();
+
+  const handleConnect = async () => {
+    try {
+      await connectWallet();
+    } catch {
+      // The hook stores a user-facing error below the button.
+    }
+  };
 
   if (isConnected && address) {
     return (
@@ -20,8 +29,18 @@ export function WalletButton() {
   }
 
   return (
-    <Button onClick={connectWallet} aria-label="Connect wallet">
-      Connect Wallet
-    </Button>
+    <div className="flex flex-col items-end gap-2">
+      <Button
+        onClick={handleConnect}
+        aria-label="Connect wallet"
+        disabled={isPending}
+        isLoading={isPending}
+      >
+        {isPending ? "Connecting" : "Connect Wallet"}
+      </Button>
+      {error && (
+        <p className="max-w-64 text-right text-xs text-red-400">{error}</p>
+      )}
+    </div>
   );
 }

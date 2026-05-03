@@ -2,17 +2,40 @@
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { WagmiProvider, createConfig, http } from "wagmi";
-import { mainnet, polygon } from "wagmi/chains";
+import { defineChain } from "viem";
 import { injected } from "wagmi/connectors";
 
-// Only use injected connector to avoid WalletConnect SSR issues
-// when no valid project ID is set
+export const kiteTestnet = defineChain({
+  id: 2368,
+  name: "KiteAI Testnet",
+  nativeCurrency: {
+    decimals: 18,
+    name: "KITE",
+    symbol: "KITE",
+  },
+  rpcUrls: {
+    default: {
+      http: ["https://rpc-testnet.gokite.ai/"],
+    },
+  },
+  blockExplorers: {
+    default: {
+      name: "KiteScan",
+      url: "https://testnet.kitescan.ai",
+    },
+  },
+  testnet: true,
+});
+
 const config = createConfig({
-  chains: [mainnet, polygon],
-  connectors: [injected()],
+  chains: [kiteTestnet],
+  connectors: [
+    injected({
+      shimDisconnect: true,
+    }),
+  ],
   transports: {
-    [mainnet.id]: http(),
-    [polygon.id]: http(),
+    [kiteTestnet.id]: http("https://rpc-testnet.gokite.ai/"),
   },
   ssr: true,
 });
