@@ -52,7 +52,7 @@ export function Header() {
           className="fas fa-circle"
           style={{ fontSize: "0.6rem", color: "#7A8B5E" }}
         />
-        0G Chain · Testnet
+        0G Chain
       </div>
 
       <button

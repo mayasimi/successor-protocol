@@ -6,31 +6,30 @@ pragma solidity ^0.8.19;
  * @author Successor Protocol
  * @notice Decentralised autonomous will executor for the 0G EVM-compatible chain.
  *
- * ── Flow ──────────────────────────────────────────────────────────────────────
- * 1. Owner deploys the contract, setting kin address, grace period, and daily
- *    spend limit.
+ * ── Revised flow (email-based kin, off-chain agent approval) ──────────────────
+ *
+ * 1. Owner deploys the contract with a kin email address, a relayer wallet
+ *    (the OpenClaw agent), a grace period, and a daily spend limit.
  * 2. Owner calls `ping()` periodically to prove liveness.
  * 3. Owner queues instructions (arbitrary low-level calls + native-token value).
- * 4. If the owner misses a heartbeat, anyone can observe `getStatus()` returning
- *    `triggered = true`.
- * 5. The kin calls `verifyDeath()` to transition the contract to EXECUTING state.
- * 6. Anyone calls `executeAll()` to run the instruction queue sequentially.
- *    Each instruction is attempted; failures are recorded but do not halt execution.
+ * 4. If the owner misses a heartbeat, `getStatus()` returns `triggered = true`.
+ *    The off-chain agent detects this and emails the kin a unique verification link.
+ * 5. When the kin clicks the link, the agent calls `approveWithdrawal()` using
+ *    its own private key (the relayer wallet).
+ * 6. The kin connects any wallet and calls `withdraw()` to receive the funds.
+ *    Alternatively, `executeAll()` runs the full instruction queue.
  *
  * ── Security properties ───────────────────────────────────────────────────────
  * - ReentrancyGuard on all state-mutating external functions.
  * - Checks-Effects-Interactions throughout.
  * - Owner-only mutations gated by `onlyOwner`.
- * - Kin-only mutations gated by `onlyKin`.
- * - No external oracle dependency; death verification is social/off-chain.
+ * - Relayer-only approval gated by `onlyRelayer`.
+ * - `withdraw()` requires `withdrawalApproved` and resets it after use.
  * - Daily spend limit enforced with a rolling 24-hour window.
  * - All critical state changes emit indexed events for 0G Chain indexing.
  */
 
 // ─── Inline ReentrancyGuard ───────────────────────────────────────────────────
-// Keeps the contract self-contained (no npm / forge install required for OZ).
-// Swap for `import {ReentrancyGuard} from "openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";`
-// if you add OZ as a forge dependency.
 
 abstract contract ReentrancyGuard {
     uint256 private constant _NOT_ENTERED = 1;
@@ -56,9 +55,9 @@ contract Successor is ReentrancyGuard {
     /// @notice Lifecycle states of the will contract.
     enum State {
         ACTIVE,    // Owner is alive; heartbeat is being maintained.
-        TRIGGERED, // Grace period elapsed; awaiting kin verification.
-        EXECUTING, // Death verified; instructions are being executed.
-        COMPLETED  // All instructions have been processed.
+        TRIGGERED, // Grace period elapsed; agent has been notified.
+        EXECUTING, // Withdrawal approved; funds can be claimed.
+        COMPLETED  // All instructions executed and/or withdrawal claimed.
     }
 
     /**
@@ -84,8 +83,11 @@ contract Successor is ReentrancyGuard {
     /// @notice The account that deployed and controls this will.
     address public immutable owner;
 
-    /// @notice The next-of-kin wallet authorised to verify death.
-    address public kinAddress;
+    /// @notice Off-chain agent wallet (OpenClaw) authorised to approve withdrawals.
+    address public relayer;
+
+    /// @notice Email address of the next-of-kin. Stored on-chain for indexers.
+    string public kinEmail;
 
     /// @notice Seconds of inactivity before the contract becomes TRIGGERED.
     uint256 public gracePeriod;
@@ -99,23 +101,41 @@ contract Successor is ReentrancyGuard {
     /// @notice Current lifecycle state.
     State public state;
 
-    /// @notice Ordered list of instructions to execute after death verification.
+    /// @notice True after the relayer approves withdrawal following kin confirmation.
+    bool public withdrawalApproved;
+
+    /// @notice Ordered list of instructions to execute after approval.
     Instruction[] public instructions;
 
     // ── Spend-limit tracking ──────────────────────────────────────────────────
 
-    /// @dev Start of the current 24-hour spend window.
     uint256 private _windowStart;
-
-    /// @dev Total ZG spent within the current window.
     uint256 private _windowSpent;
 
     // ── Events ────────────────────────────────────────────────────────────────
 
+    /// @notice Owner proved liveness.
     event HeartbeatPing(address indexed owner, uint256 timestamp);
+
+    /// @notice Grace period configuration changed.
     event GracePeriodChanged(uint256 oldPeriod, uint256 newPeriod);
-    event KinAddressChanged(address indexed oldKin, address indexed newKin);
-    event DeathVerified(address indexed kin, uint256 timestamp);
+
+    /// @notice Kin email address updated.
+    event KinEmailChanged(string oldEmail, string newEmail);
+
+    /// @notice Relayer wallet updated.
+    event RelayerChanged(address indexed oldRelayer, address indexed newRelayer);
+
+    /// @notice Grace period elapsed and the missed-heartbeat state was recorded.
+    event HeartbeatMissed(uint256 timestamp);
+
+    /// @notice Relayer approved withdrawal after kin clicked the email link.
+    event WithdrawalApproved(address indexed approvedBy, uint256 timestamp);
+
+    /// @notice Kin (or anyone) withdrew funds after approval.
+    event WithdrawalExecuted(address indexed recipient, uint256 amount);
+
+    /// @notice New instruction appended to the queue.
     event InstructionAdded(
         uint256 indexed index,
         address target,
@@ -123,25 +143,38 @@ contract Successor is ReentrancyGuard {
         uint256 value,
         string  description
     );
+
+    /// @notice Instruction removed from the queue.
     event InstructionRemoved(uint256 indexed index);
+
+    /// @notice Single instruction execution result.
     event InstructionExecuted(uint256 indexed index, bool success, bytes returnData);
+
+    /// @notice Daily spend limit updated.
     event SpendLimitChanged(uint256 oldLimit, uint256 newLimit);
+
+    /// @notice All instructions have been processed.
     event ExecutionCompleted(uint256 timestamp);
+
+    /// @notice Native token deposited into the contract.
     event Deposited(address indexed sender, uint256 amount);
 
     // ── Errors ────────────────────────────────────────────────────────────────
 
     error NotOwner();
-    error NotKin();
+    error NotRelayer();
     error AlreadyTriggered();
     error GracePeriodNotElapsed();
     error NotInExecutingState();
+    error WithdrawalNotApproved();
+    error WithdrawalAlreadyApproved();
     error InstructionIndexOutOfBounds();
-    error InstructionAlreadyExecuted();
     error DailySpendLimitExceeded(uint256 requested, uint256 remaining);
     error ZeroAddress();
     error ZeroGracePeriod();
+    error EmptyEmail();
     error InsufficientContractBalance(uint256 required, uint256 available);
+    error NothingToWithdraw();
 
     // ── Modifiers ─────────────────────────────────────────────────────────────
 
@@ -150,8 +183,8 @@ contract Successor is ReentrancyGuard {
         _;
     }
 
-    modifier onlyKin() {
-        if (msg.sender != kinAddress) revert NotKin();
+    modifier onlyRelayer() {
+        if (msg.sender != relayer) revert NotRelayer();
         _;
     }
 
@@ -164,20 +197,24 @@ contract Successor is ReentrancyGuard {
 
     /**
      * @notice Deploy a new Successor will.
-     * @param _kinAddress      Wallet of the next-of-kin who can verify death.
+     * @param _kinEmail        Email address of the next-of-kin (non-empty string).
+     * @param _relayer         Agent wallet authorised to call approveWithdrawal().
      * @param _gracePeriod     Seconds of missed heartbeat before trigger (e.g. 604800 = 7 days).
      * @param _dailySpendLimit Maximum ZG (wei) spendable per rolling 24 h window. 0 = unlimited.
      */
     constructor(
-        address _kinAddress,
-        uint256 _gracePeriod,
-        uint256 _dailySpendLimit
+        string memory _kinEmail,
+        address       _relayer,
+        uint256       _gracePeriod,
+        uint256       _dailySpendLimit
     ) {
-        if (_kinAddress == address(0)) revert ZeroAddress();
-        if (_gracePeriod == 0)         revert ZeroGracePeriod();
+        if (bytes(_kinEmail).length == 0) revert EmptyEmail();
+        if (_relayer == address(0))       revert ZeroAddress();
+        if (_gracePeriod == 0)            revert ZeroGracePeriod();
 
         owner           = msg.sender;
-        kinAddress      = _kinAddress;
+        kinEmail        = _kinEmail;
+        relayer         = _relayer;
         gracePeriod     = _gracePeriod;
         dailySpendLimit = _dailySpendLimit;
         lastPing        = block.timestamp;
@@ -187,7 +224,6 @@ contract Successor is ReentrancyGuard {
 
     // ── Receive ───────────────────────────────────────────────────────────────
 
-    /// @notice Accept plain ZG deposits so the contract can fund instructions.
     receive() external payable {
         emit Deposited(msg.sender, msg.value);
     }
@@ -203,6 +239,20 @@ contract Successor is ReentrancyGuard {
         emit HeartbeatPing(owner, block.timestamp);
     }
 
+    /**
+     * @notice Explicitly record a missed heartbeat and transition to TRIGGERED.
+     * @dev    Anyone can call this once the grace period has elapsed.
+     *         The off-chain agent calls this (or simply reads getStatus()) to
+     *         confirm the trigger before sending the kin email.
+     */
+    function markMissedHeartbeat() external {
+        if (block.timestamp < lastPing + gracePeriod) revert GracePeriodNotElapsed();
+        if (state != State.ACTIVE) revert AlreadyTriggered();
+
+        state = State.TRIGGERED;
+        emit HeartbeatMissed(block.timestamp);
+    }
+
     // ── Configuration (owner-only, pre-trigger) ───────────────────────────────
 
     /// @notice Update the grace period (seconds). Must be > 0.
@@ -213,12 +263,20 @@ contract Successor is ReentrancyGuard {
         emit GracePeriodChanged(old, newPeriod);
     }
 
-    /// @notice Update the next-of-kin wallet. Must be non-zero.
-    function setKinAddress(address newKin) external onlyOwner notTriggered {
-        if (newKin == address(0)) revert ZeroAddress();
-        address old = kinAddress;
-        kinAddress = newKin;
-        emit KinAddressChanged(old, newKin);
+    /// @notice Update the kin email address. Must be non-empty.
+    function setKinEmail(string calldata newEmail) external onlyOwner notTriggered {
+        if (bytes(newEmail).length == 0) revert EmptyEmail();
+        string memory old = kinEmail;
+        kinEmail = newEmail;
+        emit KinEmailChanged(old, newEmail);
+    }
+
+    /// @notice Update the relayer (agent) wallet. Only owner. Can be changed any time.
+    function setRelayer(address newRelayer) external onlyOwner {
+        if (newRelayer == address(0)) revert ZeroAddress();
+        address old = relayer;
+        relayer = newRelayer;
+        emit RelayerChanged(old, newRelayer);
     }
 
     /// @notice Update the daily spend limit (wei). 0 = unlimited.
@@ -290,25 +348,85 @@ contract Successor is ReentrancyGuard {
         instructions[indexB]   = tmp;
     }
 
-    // ── Death verification ────────────────────────────────────────────────────
+    // ── Approval (relayer-only) ───────────────────────────────────────────────
 
     /**
-     * @notice Kin finalises the death trigger.
+     * @notice Relayer (OpenClaw agent) approves withdrawal after the kin confirms
+     *         via the email verification link.
      *
      * Requirements:
-     * - Caller must be `kinAddress`.
-     * - Grace period must have elapsed since `lastPing`.
-     * - Contract must not already be in EXECUTING or COMPLETED state.
+     * - Caller must be the `relayer` wallet.
+     * - Grace period must have elapsed (contract must be TRIGGERED or ACTIVE-past-deadline).
+     * - `withdrawalApproved` must not already be true.
+     * - Contract must not be COMPLETED.
      */
-    function verifyDeath() external onlyKin nonReentrant {
+    function approveWithdrawal() external onlyRelayer nonReentrant {
         if (block.timestamp < lastPing + gracePeriod) revert GracePeriodNotElapsed();
-        if (state == State.EXECUTING || state == State.COMPLETED) revert AlreadyTriggered();
+        if (state == State.COMPLETED)                 revert AlreadyTriggered();
+        if (withdrawalApproved)                       revert WithdrawalAlreadyApproved();
 
-        state = State.EXECUTING;
-        emit DeathVerified(kinAddress, block.timestamp);
+        // Transition to EXECUTING if not already there
+        if (state != State.EXECUTING) {
+            state = State.EXECUTING;
+        }
+
+        withdrawalApproved = true;
+        emit WithdrawalApproved(msg.sender, block.timestamp);
     }
 
-    // ── Execution ─────────────────────────────────────────────────────────────
+    // ── Withdrawal ────────────────────────────────────────────────────────────
+
+    /**
+     * @notice Withdraw the entire contract balance to the caller.
+     *         Can be called by anyone (typically the kin's wallet) once
+     *         `withdrawalApproved` is true.
+     *
+     * @dev    Resets `withdrawalApproved` to false after transfer to prevent
+     *         double-claims. Uses Checks-Effects-Interactions.
+     */
+    function withdraw() external nonReentrant {
+        if (!withdrawalApproved)          revert WithdrawalNotApproved();
+        if (state != State.EXECUTING)     revert NotInExecutingState();
+
+        uint256 amount = address(this).balance;
+        if (amount == 0) revert NothingToWithdraw();
+
+        // Effects first
+        withdrawalApproved = false;
+        state              = State.COMPLETED;
+
+        // Interaction
+        (bool ok, ) = msg.sender.call{value: amount}("");
+        require(ok, "Successor: transfer failed");
+
+        emit WithdrawalExecuted(msg.sender, amount);
+    }
+
+    /**
+     * @notice Withdraw a specific amount to the caller.
+     *         Useful when the kin wants a partial withdrawal.
+     * @param amount ZG (wei) to withdraw.
+     */
+    function withdrawAmount(uint256 amount) external nonReentrant {
+        if (!withdrawalApproved)      revert WithdrawalNotApproved();
+        if (state != State.EXECUTING) revert NotInExecutingState();
+        if (amount == 0)              revert NothingToWithdraw();
+        if (amount > address(this).balance)
+            revert InsufficientContractBalance(amount, address(this).balance);
+
+        // Effects first – only mark completed if draining everything
+        withdrawalApproved = false;
+        if (address(this).balance == amount) {
+            state = State.COMPLETED;
+        }
+
+        (bool ok, ) = msg.sender.call{value: amount}("");
+        require(ok, "Successor: transfer failed");
+
+        emit WithdrawalExecuted(msg.sender, amount);
+    }
+
+    // ── Instruction execution ─────────────────────────────────────────────────
 
     /**
      * @notice Execute all queued instructions sequentially.
@@ -342,10 +460,11 @@ contract Successor is ReentrancyGuard {
 
     /**
      * @notice Returns the current status of the contract.
-     * @return triggered         True if the grace period has elapsed.
-     * @return currentState      The current lifecycle State enum value.
-     * @return timeRemaining     Seconds until the grace period elapses (0 if elapsed).
-     * @return totalInstructions Total number of queued instructions.
+     * @return triggered           True if the grace period has elapsed.
+     * @return currentState        The current lifecycle State enum value.
+     * @return timeRemaining       Seconds until the grace period elapses (0 if elapsed).
+     * @return totalInstructions   Total number of queued instructions.
+     * @return approvalPending     True if withdrawalApproved is set.
      */
     function getStatus()
         external
@@ -354,7 +473,8 @@ contract Successor is ReentrancyGuard {
             bool    triggered,
             State   currentState,
             uint256 timeRemaining,
-            uint256 totalInstructions
+            uint256 totalInstructions,
+            bool    approvalPending
         )
     {
         uint256 deadline  = lastPing + gracePeriod;
@@ -362,6 +482,7 @@ contract Successor is ReentrancyGuard {
         currentState      = state;
         timeRemaining     = triggered ? 0 : deadline - block.timestamp;
         totalInstructions = instructions.length;
+        approvalPending   = withdrawalApproved;
     }
 
     /// @notice Returns the number of instructions in the queue.
@@ -383,7 +504,7 @@ contract Successor is ReentrancyGuard {
 
     function _executeOne(uint256 index) internal {
         Instruction storage inst = instructions[index];
-        if (inst.executed) return; // already done – skip silently
+        if (inst.executed) return;
 
         uint256 val = inst.value;
 
@@ -411,7 +532,6 @@ contract Successor is ReentrancyGuard {
             }
         }
 
-        // Effects before interaction
         inst.executed = true;
         if (val > 0) _windowSpent += val;
 

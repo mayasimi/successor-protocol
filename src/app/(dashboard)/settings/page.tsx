@@ -68,7 +68,7 @@ export default function SettingsPage() {
         <div style={rowStyle}>
           Network
           <span style={{ marginLeft: "auto", color: "#7A8B5E" }}>
-            0G Chain · Testnet
+            0G Chain
           </span>
         </div>
         <div style={rowStyle}>
